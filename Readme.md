@@ -127,29 +127,31 @@ The repository now uses a clear data science structure so data, experiments, reu
 
 ```text
 S81-tokyoriders-AgroLens/
-	data/
-		raw/
-		processed/
-	notebooks/
-		exploration/
-		final/
-	scripts/
-		data_prep/
-		modeling/
-	outputs/
-		figures/
-		reports/
-	verification/
+  data/
+    raw/
+    processed/
+    output/
+  notebooks/
+    exploration/
+    final/
+  scripts/
+    data_prep/
+    modeling/
+  outputs/
+    figures/
+    reports/
+  verification/
 ```
 
 ### Why this structure matters
 
-- `data/raw/` keeps untouched source data for traceability.
-- `data/processed/` stores cleaned and transformed datasets used by analysis.
+- `data/raw/` keeps untouched source data for traceability and must remain unmodified.
+- `data/processed/` stores cleaned and transformed datasets generated from raw inputs.
+- `data/output/` stores final data products used by reports, dashboards, or downstream use.
 - `notebooks/exploration/` is for trial-and-error analysis and quick hypothesis checks.
 - `notebooks/final/` is for cleaner, presentation-ready notebooks with stable results.
 - `scripts/data_prep/` holds reusable preprocessing logic instead of copy-pasting notebook code.
 - `scripts/modeling/` separates training/evaluation logic from exploration.
-- `outputs/figures/` and `outputs/reports/` centralize deliverables for demos and reviews.
+- `outputs/figures/` and `outputs/reports/` centralize non-tabular deliverables.
 
-This separation improves reproducibility, reduces accidental overwrites, and makes onboarding easier because contributors can quickly find where each type of work belongs.
+This separation improves reproducibility, preserves source integrity, reduces accidental overwrites, and makes onboarding easier because contributors can quickly find where each type of work belongs.
