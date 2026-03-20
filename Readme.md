@@ -57,4 +57,66 @@ Add a short **"How to Reproduce End-to-End"** section with:
 
 This single addition would make the repository easier for reviewers to validate and for new contributors to extend.
 
-## Installed anaconda
+## 4. Environment Verification (Python, Conda, Jupyter)
+
+Verification date: `2026-03-20`
+
+### Python is installed and callable
+
+Command used:
+
+```powershell
+c:/Users/tarun/Desktop/projects/S81-tokyoriders-AgroLens/.venv/Scripts/python.exe --version
+```
+
+Observed result:
+
+```text
+Python 3.14.0
+```
+
+### Conda is installed and environments work
+
+Conda executable used:
+
+```text
+C:\Users\tarun\miniconda3\Scripts\conda.exe
+```
+
+Commands used:
+
+```powershell
+C:\Users\tarun\miniconda3\Scripts\conda.exe --version
+C:\Users\tarun\miniconda3\Scripts\conda.exe env list
+C:\Users\tarun\miniconda3\Scripts\conda.exe create -n sprint_verify python=3.11 -y
+C:\Users\tarun\miniconda3\Scripts\conda.exe run -n sprint_verify python --version
+```
+
+Observed results:
+
+```text
+conda 26.1.1
+Python 3.11.15
+```
+
+### Jupyter launches and executes Python code
+
+Jupyter package check command:
+
+```powershell
+C:\Users\tarun\miniconda3\Scripts\conda.exe run -n sprint_verify jupyter --version
+```
+
+Notebook execution check command:
+
+```powershell
+C:\Users\tarun\miniconda3\Scripts\conda.exe run -n sprint_verify python -c "import nbformat; from nbclient import NotebookClient; nb=nbformat.read('verification/jupyter_smoke.ipynb', as_version=4); NotebookClient(nb, timeout=120, kernel_name='python3').execute(); outs=nb.cells[0].get('outputs', []); print('cell_output:', outs[0].get('text','').strip() if outs else 'NO_OUTPUT')"
+```
+
+Observed result:
+
+```text
+cell_output: sum: 12
+```
+
+This confirms a Jupyter-backed kernel can execute Python code successfully.
