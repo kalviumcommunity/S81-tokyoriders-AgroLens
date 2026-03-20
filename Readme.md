@@ -120,3 +120,36 @@ cell_output: sum: 12
 ```
 
 This confirms a Jupyter-backed kernel can execute Python code successfully.
+
+## 5. Data Science Project Folder Structure
+
+The repository now uses a clear data science structure so data, experiments, reusable code, and outputs do not mix.
+
+```text
+S81-tokyoriders-AgroLens/
+	data/
+		raw/
+		processed/
+	notebooks/
+		exploration/
+		final/
+	scripts/
+		data_prep/
+		modeling/
+	outputs/
+		figures/
+		reports/
+	verification/
+```
+
+### Why this structure matters
+
+- `data/raw/` keeps untouched source data for traceability.
+- `data/processed/` stores cleaned and transformed datasets used by analysis.
+- `notebooks/exploration/` is for trial-and-error analysis and quick hypothesis checks.
+- `notebooks/final/` is for cleaner, presentation-ready notebooks with stable results.
+- `scripts/data_prep/` holds reusable preprocessing logic instead of copy-pasting notebook code.
+- `scripts/modeling/` separates training/evaluation logic from exploration.
+- `outputs/figures/` and `outputs/reports/` centralize deliverables for demos and reviews.
+
+This separation improves reproducibility, reduces accidental overwrites, and makes onboarding easier because contributors can quickly find where each type of work belongs.
