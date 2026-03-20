@@ -56,3 +56,5 @@ Add a short **"How to Reproduce End-to-End"** section with:
 4. Where final outputs appear and how to interpret them.
 
 This single addition would make the repository easier for reviewers to validate and for new contributors to extend.
+
+## Installed anaconda
