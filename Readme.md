@@ -155,3 +155,30 @@ S81-tokyoriders-AgroLens/
 - `outputs/figures/` and `outputs/reports/` centralize non-tabular deliverables.
 
 This separation improves reproducibility, preserves source integrity, reduces accidental overwrites, and makes onboarding easier because contributors can quickly find where each type of work belongs.
+
+## 6. Insights, Assumptions, and Limitations
+
+### Key Insights (Plain Language)
+
+- The project workflow now reliably loads, checks, and visualizes agricultural data before any decision-making step.
+- Price and yield patterns can look very different: price values showed wider variation than yield values in our sample analysis.
+- Time-based and distribution plots help quickly spot trend direction, unusual points, and data quality issues.
+- Simple cleaning decisions (for missing values and duplicates) can strongly change final results, so those choices must be documented clearly.
+
+### Assumptions
+
+- The sample datasets used in this sprint represent realistic structure for crop analytics (columns like crop, region, price, yield, date).
+- Historical values are treated as useful signals for basic trend exploration.
+- Filled values (for missing data) are considered acceptable for practice tasks, but may not always be appropriate for real production models.
+- Outlier rules like IQR are used as a first-pass screening method, not as absolute truth.
+
+### Limitations
+
+- Most datasets in this sprint are small, educational examples; they are useful for learning but not enough for high-confidence forecasting.
+- No advanced predictive model has been validated yet on real large-scale, multi-season farm data.
+- Visual and statistical findings here are exploratory; they should be treated as directional, not final recommendations.
+- Real-world deployment would need richer data (weather history, mandi-level demand signals, input costs, local agronomy context) and stronger validation.
+
+### Why This Matters for Reviewers
+
+This project currently demonstrates a strong data foundation: structured ingestion, cleaning, and exploratory analysis. That foundation is essential because better model outputs depend on trustworthy input data and transparent assumptions.
