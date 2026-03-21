@@ -7,28 +7,27 @@ It handles crop price normalization and risk score calculation.
 """
 
 import csv
-from datetime import datetime
 
 
-def load_crop_data(filepath):
+def load_crop_data(file_path):
     """
     Load crop price data from a CSV file.
     
     Args:
-        filepath (str): Path to the CSV file containing crop data.
+        file_path (str): Path to the CSV file containing crop data.
         
     Returns:
         list: List of dictionaries with crop data.
     """
     data = []
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
+        with open(file_path, 'r', encoding='utf-8') as csv_file:
+            reader = csv.DictReader(csv_file)
             for row in reader:
                 data.append(row)
         return data
     except FileNotFoundError:
-        print(f"Error: File '{filepath}' not found.")
+        print(f"Error: File '{file_path}' not found.")
         return []
 
 
@@ -44,8 +43,8 @@ def normalize_prices(crop_data):
     """
     if not crop_data:
         return crop_data
-    
-    # Extract prices and find min/max
+
+    # Parse prices defensively to avoid breaking the pipeline on bad rows.
     prices = []
     for row in crop_data:
         try:
@@ -57,9 +56,8 @@ def normalize_prices(crop_data):
     price_max = max(prices) if prices else 0
     price_range = price_max - price_min if price_max > price_min else 1
     
-    # Apply normalization
-    for i, row in enumerate(crop_data):
-        normalized = ((prices[i] - price_min) / price_range) * 100 if price_range > 0 else 0
+    for index, row in enumerate(crop_data):
+        normalized = ((prices[index] - price_min) / price_range) * 100 if price_range > 0 else 0
         row['normalized_price'] = round(normalized, 2)
     
     return crop_data
@@ -77,38 +75,37 @@ def calculate_risk_score(crop_data):
     """
     for row in crop_data:
         try:
-            # Simple risk model: inversely proportional to normalized price
-            # Higher price = lower risk assumption
+            # Higher normalized price is treated as lower downside risk.
             normalized = float(row.get('normalized_price', 50))
             risk_score = max(0, 10 - (normalized / 10))
             row['risk_score'] = round(risk_score, 2)
         except (ValueError, TypeError):
-            row['risk_score'] = 5.0  # Default medium risk
+            row['risk_score'] = 5.0
     
     return crop_data
 
 
-def save_processed_data(data, output_filepath):
+def save_processed_data(data, output_file_path):
     """
     Save processed data to a CSV file.
     
     Args:
         data (list): List of dictionaries with processed data.
-        output_filepath (str): Path where output CSV will be saved.
+        output_file_path (str): Path where output CSV will be saved.
     """
     if not data:
         print("No data to save.")
         return
-    
+
     try:
         fieldnames = list(data[0].keys())
-        with open(output_filepath, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+        with open(output_file_path, 'w', newline='', encoding='utf-8') as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(data)
-        print(f"Data saved to '{output_filepath}'")
-    except Exception as e:
-        print(f"Error saving file: {e}")
+        print(f"Data saved to '{output_file_path}'")
+    except Exception as error:
+        print(f"Error saving file: {error}")
 
 
 def process_crop_data(input_file, output_file):
@@ -120,31 +117,26 @@ def process_crop_data(input_file, output_file):
         output_file (str): Output CSV filepath.
     """
     print(f"Processing crop data from '{input_file}'...")
-    
-    # Load data
+
     crop_data = load_crop_data(input_file)
     if not crop_data:
         print("No data loaded. Exiting.")
         return
-    
+
     print(f"Loaded {len(crop_data)} records.")
-    
-    # Normalize prices
+
     crop_data = normalize_prices(crop_data)
     print("Prices normalized.")
-    
-    # Calculate risk
+
     crop_data = calculate_risk_score(crop_data)
     print("Risk scores calculated.")
-    
-    # Save
+
     save_processed_data(crop_data, output_file)
     print("Processing complete.")
 
 
 if __name__ == "__main__":
-    # Example usage
     input_path = "../data/raw/sample_crops.csv"
     output_path = "../data/processed/processed_crops_v1.csv"
-    
+
     process_crop_data(input_path, output_path)
