@@ -1,0 +1,11 @@
+crop,yield_kg,price
+Rice,700,1650
+Rice,800,1780
+Rice,900,1900
+Wheat,850,1820
+Wheat,950,1980
+Maize,1000,2050
+Maize,1100,2200
+Cotton,1200,2380
+Cotton,1300,2500
+SpecialCrop,500,3200
