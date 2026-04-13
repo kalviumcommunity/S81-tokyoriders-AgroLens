@@ -1,5 +1,40 @@
 # AgroLens - Part A README Documentation
 
+## 0. Modular ML Architecture
+
+The ML codebase is structured as import-safe modules under `src/`, with clear separation of responsibilities:
+
+- `src/data_loader.py`: data loading for training and inference.
+- `src/feature_engineering.py`: deterministic feature engineering.
+- `src/preprocessing.py`: split, fit/transform preprocessing, and preprocessing artifact persistence.
+- `src/model.py`: model training and model artifact persistence.
+- `src/evaluate.py`: model evaluation metrics.
+- `src/predict.py`: pure prediction function.
+- `src/training_pipeline.py`: training and evaluation pipeline.
+- `src/prediction_pipeline.py`: inference pipeline from persisted artifacts.
+- `src/main.py`: single CLI entry point.
+
+### Entry point
+
+Use the package entry point:
+
+```powershell
+python -m src.main train
+python -m src.main predict --data-path data/raw/source_demo_crops_20260321.csv
+```
+
+### Why this is import-safe and production-oriented
+
+- No top-level executable training or prediction logic in library modules.
+- No circular imports: dependencies flow one direction (utility modules -> pipeline modules -> CLI).
+- Preprocessing logic is implemented once and reused by both pipelines via saved artifacts.
+
+### Independent pipelines
+
+- Training pipeline (`train`) creates artifacts: model + preprocessor.
+- Prediction pipeline (`predict`) only consumes those artifacts and input data; it does not retrain.
+- This proves train and predict flows are independent and can run at different times.
+
 ## 1. Project Intent and High-Level Flow
 
 The core problem this project targets is practical uncertainty: farmers make crop and selling decisions before they know future demand, price movement, and climate stress. The intent is not only to predict a number, but to support better decisions under risk. In this context, the central question is: *Which crop and timing choices are most likely to give stable returns in the coming season for a given region?*
