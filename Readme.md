@@ -1,5 +1,58 @@
 # AgroLens - Part A README Documentation
 
+## Dependency Reproducibility Setup
+
+This project uses a pinned dependency file to ensure repeatable installs:
+
+- `requirements.txt`
+  - `numpy==2.4.3`
+  - `pandas==3.0.1`
+  - `scikit-learn==1.8.0`
+
+These are the direct runtime dependencies used by the modular ML pipeline in `src/`.
+
+### Fresh Virtual Environment Verification (Windows PowerShell)
+
+Run from repository root:
+
+```powershell
+py -m venv .venv_repro
+.\.venv_repro\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m src.main train
+python -m src.main predict --data-path data/raw/source_demo_crops_20260321.csv --output-path outputs/reports/predictions.csv
+```
+
+Or run the one-shot verification script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File verification/repro_check.ps1
+```
+
+Expected outcomes:
+
+- Training command completes and saves artifacts in `outputs/models/`.
+- Prediction command completes and saves `outputs/reports/predictions.csv`.
+- No manual package installation is required outside `requirements.txt`.
+
+### Reproducibility Proof Checklist (Short Video Walkthrough)
+
+Record a 1-3 minute video showing the following sequence:
+
+1. Open terminal in repo root.
+2. Create and activate a new environment (`.venv_repro`).
+3. Install dependencies only from `requirements.txt`.
+4. Run `python -m src.main train` successfully.
+5. Run `python -m src.main predict ...` successfully.
+6. Show generated files:
+   - `outputs/models/model.pkl`
+   - `outputs/models/preprocessor.pkl`
+   - `outputs/reports/predictions.csv`
+7. (Optional) Run `python -m pip freeze` to show installed versions match the pinned setup.
+
+This demonstrates that dependency management is working in practice, not only documented.
+
 ## 0. Modular ML Architecture
 
 The ML codebase is structured as import-safe modules under `src/`, with clear separation of responsibilities:
