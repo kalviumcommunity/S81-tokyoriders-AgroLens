@@ -221,3 +221,6 @@ This project currently demonstrates a strong data foundation: structured ingesti
 
 
 5.4
+
+
+a new environment created for the project
