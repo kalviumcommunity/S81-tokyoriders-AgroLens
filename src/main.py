@@ -1,21 +1,15 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
-from data_loader import load_data
-from evaluate import evaluate_model
-from model import train_model
-from preprocessing import preprocess_data
+from .prediction_pipeline import run_prediction_pipeline
+from .training_pipeline import run_training_pipeline
 
 
-def run_pipeline(data_path: str | None = None, target_column: str | None = None) -> dict[str, float | str]:
-    """Run the complete ML workflow and return evaluation metrics."""
-    features, target = load_data(data_path=data_path, target_column=target_column)
-    x_train, x_test, y_train, y_test, _ = preprocess_data(features, target)
-    trained_model = train_model(x_train, y_train)
-    metrics = evaluate_model(trained_model, x_test, y_test)
-
-    print("ML pipeline completed successfully.")
+def print_metrics(metrics: dict[str, float | str]) -> None:
+    """Print evaluation metrics in a compact and readable form."""
+    print("Training pipeline completed successfully.")
     print(f"Accuracy:  {metrics['accuracy']:.4f}")
     print(f"Precision: {metrics['precision']:.4f}")
     print(f"Recall:    {metrics['recall']:.4f}")
@@ -23,27 +17,85 @@ def run_pipeline(data_path: str | None = None, target_column: str | None = None)
     print("\nClassification report:")
     print(metrics["classification_report"])
 
-    return metrics
-
 
 def parse_args() -> argparse.Namespace:
-    """Parse optional command line arguments."""
-    parser = argparse.ArgumentParser(description="Run a modular ML pipeline.")
-    parser.add_argument(
-        "--data-path",
+    """Parse command line arguments for training and prediction flows."""
+    parser = argparse.ArgumentParser(description="AgroLens modular ML entry point")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    train_parser = subparsers.add_parser("train", help="Train model and save artifacts")
+    train_parser.add_argument("--data-path", type=str, default=None, help="Optional CSV path")
+    train_parser.add_argument("--target-column", type=str, default=None, help="Target column name")
+    train_parser.add_argument(
+        "--model-path",
         type=str,
-        default=None,
-        help="Optional CSV path. If omitted, synthetic data is generated.",
+        default="outputs/models/model.pkl",
+        help="Destination path for trained model",
     )
-    parser.add_argument(
+    train_parser.add_argument(
+        "--preprocessor-path",
+        type=str,
+        default="outputs/models/preprocessor.pkl",
+        help="Destination path for fitted preprocessor",
+    )
+
+    predict_parser = subparsers.add_parser("predict", help="Run inference from saved artifacts")
+    predict_parser.add_argument("--data-path", type=str, required=True, help="CSV path for inference")
+    predict_parser.add_argument(
         "--target-column",
         type=str,
         default=None,
-        help="Target column name when using --data-path.",
+        help="Optional target column to drop if present",
     )
+    predict_parser.add_argument(
+        "--model-path",
+        type=str,
+        default="outputs/models/model.pkl",
+        help="Path to trained model",
+    )
+    predict_parser.add_argument(
+        "--preprocessor-path",
+        type=str,
+        default="outputs/models/preprocessor.pkl",
+        help="Path to fitted preprocessor",
+    )
+    predict_parser.add_argument(
+        "--output-path",
+        type=str,
+        default="outputs/reports/predictions.csv",
+        help="Destination for predictions CSV",
+    )
+
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Execution entry point for the command line interface."""
     arguments = parse_args()
-    run_pipeline(data_path=arguments.data_path, target_column=arguments.target_column)
+
+    if arguments.command == "train":
+        metrics = run_training_pipeline(
+            data_path=arguments.data_path,
+            target_column=arguments.target_column,
+            model_output_path=arguments.model_path,
+            preprocessor_output_path=arguments.preprocessor_path,
+        )
+        print_metrics(metrics)
+        print(f"Model saved to: {Path(arguments.model_path)}")
+        print(f"Preprocessor saved to: {Path(arguments.preprocessor_path)}")
+        return
+
+    prediction_frame = run_prediction_pipeline(
+        data_path=arguments.data_path,
+        model_path=arguments.model_path,
+        preprocessor_path=arguments.preprocessor_path,
+        target_column=arguments.target_column,
+        output_path=arguments.output_path,
+    )
+    print("Prediction pipeline completed successfully.")
+    print(f"Predictions generated: {len(prediction_frame)}")
+    print(f"Output saved to: {Path(arguments.output_path)}")
+
+
+if __name__ == "__main__":
+    main()

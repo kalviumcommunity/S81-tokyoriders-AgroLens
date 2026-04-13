@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.datasets import make_classification
 
 
-def load_data(
+def load_training_data(
     data_path: str | Path | None = None,
     target_column: str | None = None,
     *,
@@ -14,7 +14,7 @@ def load_data(
     n_features: int = 8,
     random_state: int = 42,
 ) -> tuple[pd.DataFrame, pd.Series]:
-    """Load a dataset from CSV or generate a synthetic fallback dataset.
+    """Load training data from CSV or generate a synthetic fallback dataset.
 
     Args:
         data_path: Optional path to a CSV file.
@@ -53,3 +53,39 @@ def load_data(
     features = dataframe.drop(columns=[target_column])
     target = dataframe[target_column]
     return features, target
+
+
+def load_prediction_data(
+    data_path: str | Path,
+    target_column: str | None = None,
+) -> pd.DataFrame:
+    """Load feature data for inference.
+
+    If target_column is supplied and exists, it is removed to avoid leakage.
+    """
+    csv_path = Path(data_path)
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Dataset not found: {csv_path}")
+
+    dataframe = pd.read_csv(csv_path)
+    if target_column and target_column in dataframe.columns:
+        return dataframe.drop(columns=[target_column])
+    return dataframe
+
+
+def load_data(
+    data_path: str | Path | None = None,
+    target_column: str | None = None,
+    *,
+    n_samples: int = 500,
+    n_features: int = 8,
+    random_state: int = 42,
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Backward-compatible alias for load_training_data."""
+    return load_training_data(
+        data_path=data_path,
+        target_column=target_column,
+        n_samples=n_samples,
+        n_features=n_features,
+        random_state=random_state,
+    )

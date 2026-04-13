@@ -12,10 +12,11 @@ def evaluate_model(
 ) -> dict[str, float | str]:
     """Evaluate a trained classifier and return summary metrics."""
     predictions = model.predict(x_test)
+    average = "binary" if y_test.nunique() == 2 else "weighted"
     precision, recall, f1_score, _ = precision_recall_fscore_support(
         y_test,
         predictions,
-        average="binary",
+        average=average,
         zero_division=0,
     )
     return {
