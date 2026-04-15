@@ -19,12 +19,17 @@ EXTERNAL_DATA_DIR = DATA_DIR / "external"
 MODELS_DIR = ROOT_DIR / "models"
 REPORTS_DIR = ROOT_DIR / "reports"
 LOGS_DIR = ROOT_DIR / "logs"
+OUTPUTS_DIR = ROOT_DIR / "outputs"
+FIGURES_DIR = OUTPUTS_DIR / "figures"
 
 DEFAULT_MODEL_PATH = MODELS_DIR / "model.pkl"
 DEFAULT_PREPROCESSOR_PATH = MODELS_DIR / "preprocessor.pkl"
 DEFAULT_PREDICTIONS_PATH = REPORTS_DIR / "predictions.csv"
 DEFAULT_EVALUATION_REPORT_PATH = REPORTS_DIR / "evaluation_report.json"
+DEFAULT_DISTRIBUTION_REPORT_PATH = REPORTS_DIR / "feature_distribution_report.json"
 DEFAULT_EXPERIMENT_LOG_PATH = LOGS_DIR / "experiment_log.csv"
+
+DEFAULT_DISTRIBUTION_FIGURES_DIR = FIGURES_DIR / "feature_distributions"
 
 DEFAULT_RANDOM_STATE = 42
 DEFAULT_TEST_SIZE = 0.2
@@ -75,3 +80,5 @@ class Paths:
     models_dir: Path = MODELS_DIR
     reports_dir: Path = REPORTS_DIR
     logs_dir: Path = LOGS_DIR
+    outputs_dir: Path = OUTPUTS_DIR
+    figures_dir: Path = FIGURES_DIR
