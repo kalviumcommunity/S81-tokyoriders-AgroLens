@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from .config import DEFAULT_MODEL_PATH, DEFAULT_PREDICTIONS_PATH, DEFAULT_PREPROCESSOR_PATH
-from .data_loader import load_prediction_data
+from .data_loader import load_inference_frame
 from .feature_engineering import engineer_features
 from .model import load_model
 from .predict import predict
@@ -21,7 +21,7 @@ def run_prediction_pipeline(
     output_path: str | Path | None = DEFAULT_PREDICTIONS_PATH,
 ) -> pd.DataFrame:
     """Run inference using persisted model and preprocessing artifacts."""
-    raw_features = load_prediction_data(data_path, target_column=target_column)
+    raw_features = load_inference_frame(data_path, target_column=target_column)
     engineered_features = engineer_features(raw_features)
 
     preprocessor_bundle = load_preprocessor(preprocessor_path)

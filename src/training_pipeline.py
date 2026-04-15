@@ -5,7 +5,10 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .data_loader import load_training_data
+import pandas as pd
+from sklearn.datasets import make_classification
+
+from .data_loader import load_training_frame
 from .evaluate import evaluate_model
 from .feature_engineering import engineer_features
 from .config import (
@@ -16,6 +19,51 @@ from .config import (
 )
 from .model import save_model, train_model
 from .preprocessing import fit_preprocessor, save_preprocessor, split_data, transform_features
+
+
+def _derive_binary_target(values: pd.Series) -> pd.Series:
+    threshold = float(values.median())
+    return (values >= threshold).astype(int).rename("target")
+
+
+def _prepare_features_and_target(
+    dataframe: pd.DataFrame,
+    target_column: str | None,
+) -> tuple[pd.DataFrame, pd.Series]:
+    if target_column is not None:
+        if target_column not in dataframe.columns:
+            raise ValueError(f"Column '{target_column}' not found in dataset")
+        return dataframe.drop(columns=[target_column]), dataframe[target_column]
+
+    # Demo-friendly default: derive a binary target from yield_kg when available.
+    if "yield_kg" in dataframe.columns:
+        target = _derive_binary_target(dataframe["yield_kg"])
+        features = dataframe.drop(columns=["yield_kg"])
+        return features, target
+
+    raise ValueError(
+        "target_column must be provided for training when the dataset has no 'yield_kg' column"
+    )
+
+
+def _synthetic_training_data(
+    *,
+    n_samples: int = 500,
+    n_features: int = 8,
+    random_state: int = 42,
+) -> tuple[pd.DataFrame, pd.Series]:
+    features_array, target_array = make_classification(
+        n_samples=n_samples,
+        n_features=n_features,
+        n_informative=max(2, n_features // 2),
+        n_redundant=max(0, n_features // 4),
+        n_classes=2,
+        random_state=random_state,
+    )
+    feature_names = [f"feature_{index}" for index in range(n_features)]
+    features = pd.DataFrame(features_array, columns=feature_names)
+    target = pd.Series(target_array, name="target")
+    return features, target
 
 
 def _write_json_report(metrics: dict[str, float | str], path: str | Path) -> None:
@@ -63,7 +111,12 @@ def run_training_pipeline(
     experiment_log_path: str | Path | None = DEFAULT_EXPERIMENT_LOG_PATH,
 ) -> dict[str, float | str]:
     """Train and evaluate a model, then persist model and preprocessing artifacts."""
-    features, target = load_training_data(data_path=data_path, target_column=target_column)
+    try:
+        raw_frame = load_training_frame(data_path)
+        features, target = _prepare_features_and_target(raw_frame, target_column)
+    except FileNotFoundError:
+        features, target = _synthetic_training_data()
+
     engineered_features = engineer_features(features)
 
     x_train, x_test, y_train, y_test = split_data(engineered_features, target)
