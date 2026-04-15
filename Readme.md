@@ -307,9 +307,3 @@ This separation improves reproducibility, preserves source integrity, reduces ac
 
 This project currently demonstrates a strong data foundation: structured ingestion, cleaning, and exploratory analysis. That foundation is essential because better model outputs depend on trustworthy input data and transparent assumptions.
 
-
-
-5.4
-
-
-a new environment created for the project
