@@ -24,5 +24,5 @@ def evaluate_model(
         "precision": precision,
         "recall": recall,
         "f1_score": f1_score,
-        "classification_report": classification_report(y_test, predictions),
+        "classification_report": classification_report(y_test, predictions, zero_division=0),
     }

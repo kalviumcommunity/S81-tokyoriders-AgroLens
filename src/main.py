@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from .config import DEFAULT_MODEL_PATH, DEFAULT_PREDICTIONS_PATH, DEFAULT_PREPROCESSOR_PATH
 from .prediction_pipeline import run_prediction_pipeline
 from .training_pipeline import run_training_pipeline
 
@@ -29,13 +30,13 @@ def parse_args() -> argparse.Namespace:
     train_parser.add_argument(
         "--model-path",
         type=str,
-        default="outputs/models/model.pkl",
+        default=str(DEFAULT_MODEL_PATH),
         help="Destination path for trained model",
     )
     train_parser.add_argument(
         "--preprocessor-path",
         type=str,
-        default="outputs/models/preprocessor.pkl",
+        default=str(DEFAULT_PREPROCESSOR_PATH),
         help="Destination path for fitted preprocessor",
     )
 
@@ -50,19 +51,19 @@ def parse_args() -> argparse.Namespace:
     predict_parser.add_argument(
         "--model-path",
         type=str,
-        default="outputs/models/model.pkl",
+        default=str(DEFAULT_MODEL_PATH),
         help="Path to trained model",
     )
     predict_parser.add_argument(
         "--preprocessor-path",
         type=str,
-        default="outputs/models/preprocessor.pkl",
+        default=str(DEFAULT_PREPROCESSOR_PATH),
         help="Path to fitted preprocessor",
     )
     predict_parser.add_argument(
         "--output-path",
         type=str,
-        default="outputs/reports/predictions.csv",
+        default=str(DEFAULT_PREDICTIONS_PATH),
         help="Destination for predictions CSV",
     )
 

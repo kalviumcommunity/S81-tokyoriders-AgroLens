@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 from sklearn.datasets import make_classification
 
+from .config import RAW_DATA_DIR
+
 
 def load_training_data(
     data_path: str | Path | None = None,
@@ -27,6 +29,22 @@ def load_training_data(
         Tuple of (features, target).
     """
     if data_path is None:
+        default_csv = RAW_DATA_DIR / "source_demo_crops_20260321.csv"
+        if default_csv.exists():
+            dataframe = pd.read_csv(default_csv)
+            target_source = "yield_kg" if "yield_kg" in dataframe.columns else None
+            if target_source is None:
+                numeric_columns = dataframe.select_dtypes(include="number").columns.tolist()
+                if numeric_columns:
+                    target_source = numeric_columns[-1]
+
+            if target_source is not None:
+                target_values = dataframe[target_source]
+                threshold = float(target_values.median())
+                target = (target_values >= threshold).astype(int).rename("target")
+                features = dataframe.drop(columns=[target_source])
+                return features, target
+
         features_array, target_array = make_classification(
             n_samples=n_samples,
             n_features=n_features,

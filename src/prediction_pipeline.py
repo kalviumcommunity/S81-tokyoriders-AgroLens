@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .config import DEFAULT_MODEL_PATH, DEFAULT_PREDICTIONS_PATH, DEFAULT_PREPROCESSOR_PATH
 from .data_loader import load_prediction_data
 from .feature_engineering import engineer_features
 from .model import load_model
@@ -14,10 +15,10 @@ from .preprocessing import load_preprocessor, transform_features
 def run_prediction_pipeline(
     data_path: str | Path,
     *,
-    model_path: str | Path = "outputs/models/model.pkl",
-    preprocessor_path: str | Path = "outputs/models/preprocessor.pkl",
+    model_path: str | Path = DEFAULT_MODEL_PATH,
+    preprocessor_path: str | Path = DEFAULT_PREPROCESSOR_PATH,
     target_column: str | None = None,
-    output_path: str | Path | None = "outputs/reports/predictions.csv",
+    output_path: str | Path | None = DEFAULT_PREDICTIONS_PATH,
 ) -> pd.DataFrame:
     """Run inference using persisted model and preprocessing artifacts."""
     raw_features = load_prediction_data(data_path, target_column=target_column)

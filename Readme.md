@@ -21,7 +21,7 @@ py -m venv .venv_repro
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m src.main train
-python -m src.main predict --data-path data/raw/source_demo_crops_20260321.csv --output-path outputs/reports/predictions.csv
+python -m src.main predict --data-path data/raw/source_demo_crops_20260321.csv --target-column yield_kg --output-path reports/predictions.csv
 ```
 
 Or run the one-shot verification script:
@@ -32,8 +32,9 @@ powershell -ExecutionPolicy Bypass -File verification/repro_check.ps1
 
 Expected outcomes:
 
-- Training command completes and saves artifacts in `outputs/models/`.
-- Prediction command completes and saves `outputs/reports/predictions.csv`.
+- Training command completes and saves artifacts in `models/`.
+- Training also writes a lightweight evaluation report to `reports/evaluation_report.json` and appends a row to `logs/experiment_log.csv`.
+- Prediction command completes and saves `reports/predictions.csv` (or your chosen `--output-path`).
 - No manual package installation is required outside `requirements.txt`.
 
 ### Reproducibility Proof Checklist (Short Video Walkthrough)
@@ -46,9 +47,11 @@ Record a 1-3 minute video showing the following sequence:
 4. Run `python -m src.main train` successfully.
 5. Run `python -m src.main predict ...` successfully.
 6. Show generated files:
-   - `outputs/models/model.pkl`
-   - `outputs/models/preprocessor.pkl`
-   - `outputs/reports/predictions.csv`
+  - `models/model.pkl`
+  - `models/preprocessor.pkl`
+  - `reports/evaluation_report.json`
+  - `reports/predictions.csv`
+  - `logs/experiment_log.csv`
 7. (Optional) Run `python -m pip freeze` to show installed versions match the pinned setup.
 
 This demonstrates that dependency management is working in practice, not only documented.
@@ -219,12 +222,16 @@ S81-tokyoriders-AgroLens/
     raw/
     processed/
     output/
+    external/
   notebooks/
     exploration/
     final/
   scripts/
     data_prep/
     modeling/
+  models/
+  reports/
+  logs/
   outputs/
     figures/
     reports/
@@ -240,7 +247,10 @@ S81-tokyoriders-AgroLens/
 - `notebooks/final/` is for cleaner, presentation-ready notebooks with stable results.
 - `scripts/data_prep/` holds reusable preprocessing logic instead of copy-pasting notebook code.
 - `scripts/modeling/` separates training/evaluation logic from exploration.
-- `outputs/figures/` and `outputs/reports/` centralize non-tabular deliverables.
+- `models/` stores persisted model + preprocessing artifacts.
+- `reports/` stores evaluation reports and predictions.
+- `logs/` stores lightweight experiment tracking.
+- `outputs/` remains available for legacy/generated materials (for example, figures).
 
 This separation improves reproducibility, preserves source integrity, reduces accidental overwrites, and makes onboarding easier because contributors can quickly find where each type of work belongs.
 
