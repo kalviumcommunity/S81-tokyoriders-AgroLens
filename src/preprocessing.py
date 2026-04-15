@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-import pickle
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+
+from .config import DEFAULT_RANDOM_STATE, DEFAULT_TEST_SIZE
+from .persistence import load_pickle_typed, save_pickle
 
 
 @dataclass
@@ -19,29 +21,42 @@ def split_data(
     features: pd.DataFrame,
     target: pd.Series,
     *,
-    test_size: float = 0.2,
-    random_state: int = 42,
+    test_size: float = DEFAULT_TEST_SIZE,
+    random_state: int = DEFAULT_RANDOM_STATE,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     """Split features and target into train/test subsets.
 
     Returns:
         X_train, X_test, y_train, y_test
     """
-    x_train, x_test, y_train, y_test = train_test_split(
-        features,
-        target,
-        test_size=test_size,
-        random_state=random_state,
-        stratify=target,
-    )
+    try:
+        x_train, x_test, y_train, y_test = train_test_split(
+            features,
+            target,
+            test_size=test_size,
+            random_state=random_state,
+            stratify=target,
+        )
+    except ValueError:
+        x_train, x_test, y_train, y_test = train_test_split(
+            features,
+            target,
+            test_size=test_size,
+            random_state=random_state,
+            stratify=None,
+        )
     return x_train, x_test, y_train, y_test
 
 
 def fit_preprocessor(x_train: pd.DataFrame) -> PreprocessorBundle:
     """Fit a preprocessor bundle on training features only."""
+    numeric_frame = x_train.select_dtypes(include="number")
+    if numeric_frame.empty:
+        raise ValueError("No numeric feature columns found to fit the preprocessor")
+
     scaler = StandardScaler()
-    scaler.fit(x_train)
-    return PreprocessorBundle(scaler=scaler, feature_columns=x_train.columns.tolist())
+    scaler.fit(numeric_frame)
+    return PreprocessorBundle(scaler=scaler, feature_columns=numeric_frame.columns.tolist())
 
 
 def transform_features(features: pd.DataFrame, bundle: PreprocessorBundle) -> pd.DataFrame:
@@ -58,33 +73,20 @@ def transform_features(features: pd.DataFrame, bundle: PreprocessorBundle) -> pd
 
 def save_preprocessor(bundle: PreprocessorBundle, output_path: str | Path) -> None:
     """Persist a fitted preprocessor bundle to disk."""
-    destination = Path(output_path)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    with destination.open("wb") as output_file:
-        pickle.dump(bundle, output_file)
+    save_pickle(bundle, output_path)
 
 
 def load_preprocessor(preprocessor_path: str | Path) -> PreprocessorBundle:
     """Load a fitted preprocessor bundle from disk."""
-    source = Path(preprocessor_path)
-    if not source.exists():
-        raise FileNotFoundError(f"Preprocessor not found: {source}")
-
-    with source.open("rb") as input_file:
-        bundle = pickle.load(input_file)
-
-    if not isinstance(bundle, PreprocessorBundle):
-        raise TypeError("Loaded preprocessor is not a PreprocessorBundle")
-
-    return bundle
+    return load_pickle_typed(preprocessor_path, expected_type=PreprocessorBundle)
 
 
 def preprocess_data(
     features: pd.DataFrame,
     target: pd.Series,
     *,
-    test_size: float = 0.2,
-    random_state: int = 42,
+    test_size: float = DEFAULT_TEST_SIZE,
+    random_state: int = DEFAULT_RANDOM_STATE,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, StandardScaler]:
     """Backward-compatible helper for split+fit+transform.
 

@@ -13,7 +13,8 @@ Write-Host "[4/5] Running training pipeline..."
 .\.venv_repro\Scripts\python.exe -m src.main train
 
 Write-Host "[5/5] Running prediction pipeline..."
-.\.venv_repro\Scripts\python.exe -m src.main predict --data-path data/raw/source_demo_crops_20260321.csv --output-path outputs/reports/predictions.csv
+.\.venv_repro\Scripts\python.exe -m src.main predict --data-path data/raw/source_demo_crops_20260321.csv --target-column yield_kg --output-path reports/predictions.csv
 
 Write-Host "Reproducibility check completed successfully."
-Write-Host "Artifacts: outputs/models/model.pkl, outputs/models/preprocessor.pkl, outputs/reports/predictions.csv"
+Write-Host "Artifacts: models/model.pkl, models/preprocessor.pkl, reports/predictions.csv"
+Write-Host "Also generated: reports/evaluation_report.json, logs/experiment_log.csv"

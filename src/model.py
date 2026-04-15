@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-import pickle
 
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
+
+from .config import DEFAULT_RANDOM_STATE
+from .persistence import load_pickle_typed, save_pickle
 
 
 def train_model(
@@ -12,7 +14,7 @@ def train_model(
     y_train: pd.Series,
     *,
     max_iter: int = 500,
-    random_state: int = 42,
+    random_state: int = DEFAULT_RANDOM_STATE,
 ) -> LogisticRegression:
     """Train and return a Logistic Regression classifier."""
     classifier = LogisticRegression(max_iter=max_iter, random_state=random_state)
@@ -22,22 +24,9 @@ def train_model(
 
 def save_model(model: LogisticRegression, output_path: str | Path) -> None:
     """Persist a trained model to disk."""
-    destination = Path(output_path)
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    with destination.open("wb") as output_file:
-        pickle.dump(model, output_file)
+    save_pickle(model, output_path)
 
 
 def load_model(model_path: str | Path) -> LogisticRegression:
     """Load a trained model from disk."""
-    source = Path(model_path)
-    if not source.exists():
-        raise FileNotFoundError(f"Model not found: {source}")
-
-    with source.open("rb") as input_file:
-        trained_model = pickle.load(input_file)
-
-    if not isinstance(trained_model, LogisticRegression):
-        raise TypeError("Loaded model is not a LogisticRegression instance")
-
-    return trained_model
+    return load_pickle_typed(model_path, expected_type=LogisticRegression)
