@@ -18,6 +18,7 @@ from .config import (
     DEFAULT_PREPROCESSOR_PATH,
 )
 from .model import save_model, train_model
+from .problem_type import infer_supervised_problem_type, recommended_metrics
 from .preprocessing import fit_preprocessor, save_preprocessor, split_data, transform_features
 
 
@@ -116,6 +117,16 @@ def run_training_pipeline(
         features, target = _prepare_features_and_target(raw_frame, target_column)
     except FileNotFoundError:
         features, target = _synthetic_training_data()
+
+    inferred = infer_supervised_problem_type(target)
+    if inferred.kind != "classification":
+        metrics = ", ".join(recommended_metrics(inferred))
+        raise ValueError(
+            "This training pipeline is configured for classification targets, but the provided target "
+            f"looks like {inferred.kind} ({inferred.subtype}). "
+            f"Recommended metrics for that target type: {metrics}. "
+            "Fix: choose a categorical target for classification, or implement a regression model/evaluator."
+        )
 
     engineered_features = engineer_features(features)
 
