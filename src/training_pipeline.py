@@ -11,9 +11,16 @@ from sklearn.datasets import make_classification
 from .data_loader import load_training_frame
 from .evaluate import evaluate_model
 from .feature_engineering import engineer_features
+from .feature_inspection import (
+    build_feature_distribution_report,
+    maybe_save_distribution_plots,
+    save_feature_distribution_report,
+)
 from .config import (
     DEFAULT_EVALUATION_REPORT_PATH,
     DEFAULT_EXPERIMENT_LOG_PATH,
+    DEFAULT_DISTRIBUTION_FIGURES_DIR,
+    DEFAULT_DISTRIBUTION_REPORT_PATH,
     DEFAULT_MODEL_PATH,
     DEFAULT_PREPROCESSOR_PATH,
     ALL_FEATURES,
@@ -138,6 +145,8 @@ def run_training_pipeline(
     *,
     model_output_path: str | Path = DEFAULT_MODEL_PATH,
     preprocessor_output_path: str | Path = DEFAULT_PREPROCESSOR_PATH,
+    distribution_report_path: str | Path | None = DEFAULT_DISTRIBUTION_REPORT_PATH,
+    distribution_figures_dir: str | Path | None = DEFAULT_DISTRIBUTION_FIGURES_DIR,
     evaluation_report_path: str | Path | None = DEFAULT_EVALUATION_REPORT_PATH,
     experiment_log_path: str | Path | None = DEFAULT_EXPERIMENT_LOG_PATH,
 ) -> dict[str, float | str]:
@@ -161,6 +170,23 @@ def run_training_pipeline(
     engineered_features = engineer_features(features)
 
     x_train, x_test, y_train, y_test = split_data(engineered_features, target)
+
+    numeric_columns_for_inspection = x_train.select_dtypes(include="number").columns.tolist()
+
+    if distribution_report_path is not None:
+        report = build_feature_distribution_report(
+            x_train,
+            target=y_train,
+        )
+        save_feature_distribution_report(report, distribution_report_path)
+
+    if distribution_figures_dir is not None:
+        maybe_save_distribution_plots(
+            x_train,
+            numeric_features=numeric_columns_for_inspection,
+            output_dir=distribution_figures_dir,
+        )
+
     preprocessor_bundle = fit_preprocessor(
         x_train,
         numeric_features=NUMERICAL_FEATURES,
