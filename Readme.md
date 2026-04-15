@@ -91,6 +91,32 @@ python -m src.main predict --data-path data/raw/source_demo_crops_20260321.csv
 - Prediction pipeline (`predict`) only consumes those artifacts and input data; it does not retrain.
 - This proves train and predict flows are independent and can run at different times.
 
+## 0.1 Feature and Target Definitions (5.14)
+
+This project defines features and the target explicitly in `src/config.py`.
+
+### Target
+
+- **Model target column:** `target` (binary classification label)
+- **Derived from:** `yield_kg` in the demo CSV (`data/raw/source_demo_crops_20260321.csv`)
+- **Business meaning (demo):** predict whether yield is **high** vs **low** relative to the dataset median
+
+### Features
+
+- **Numerical features:** `price`
+- **Categorical features:** `crop`, `region`
+
+### Exclusions / Leakage prevention
+
+- `yield_kg` is **excluded from features** (it is used only to derive the label for training).
+- During inference, `yield_kg` is dropped from input if present via `--target-column yield_kg`.
+- `X` and `y` are separated explicitly before any fitting, and preprocessing is fit on train only.
+
+### Problem type and metrics
+
+- **Problem type:** binary classification
+- **Metrics:** accuracy, precision, recall, F1 (ROC-AUC can be added when probability outputs are used)
+
 ## 1. Project Intent and High-Level Flow
 
 The core problem this project targets is practical uncertainty: farmers make crop and selling decisions before they know future demand, price movement, and climate stress. The intent is not only to predict a number, but to support better decisions under risk. In this context, the central question is: *Which crop and timing choices are most likely to give stable returns in the coming season for a given region?*

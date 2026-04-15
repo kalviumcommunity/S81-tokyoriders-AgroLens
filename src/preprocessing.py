@@ -5,16 +5,78 @@ from pathlib import Path
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from .config import DEFAULT_RANDOM_STATE, DEFAULT_TEST_SIZE
 from .persistence import load_pickle_typed, save_pickle
 
 
+def validate_feature_target_definition(
+    dataframe: pd.DataFrame,
+    *,
+    target_column: str,
+    feature_columns: list[str],
+    excluded_columns: list[str] | None = None,
+) -> None:
+    """Validate that feature/target definitions are consistent and leak-free."""
+    if target_column not in dataframe.columns:
+        raise ValueError(f"Target '{target_column}' not found in dataframe")
+
+    if target_column in feature_columns:
+        raise ValueError("Target leaked into features!")
+
+    if excluded_columns:
+        overlap = set(excluded_columns) & set(feature_columns)
+        if overlap:
+            overlapped = ", ".join(sorted(overlap))
+            raise ValueError(f"Excluded columns found in feature list: {overlapped}")
+
+    missing_features = set(feature_columns) - set(dataframe.columns)
+    if missing_features:
+        missing = ", ".join(sorted(missing_features))
+        raise ValueError(f"Features not found in dataframe: {missing}")
+
+
+def separate_features_and_target(
+    dataframe: pd.DataFrame,
+    *,
+    target_column: str,
+    feature_columns: list[str],
+    excluded_columns: list[str] | None = None,
+    verbose: bool = False,
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Separate X (features) and y (target) explicitly.
+
+    This is intended to run early in the pipeline before any fitting.
+    """
+    validate_feature_target_definition(
+        dataframe,
+        target_column=target_column,
+        feature_columns=feature_columns,
+        excluded_columns=excluded_columns,
+    )
+
+    x = dataframe[feature_columns]
+    y = dataframe[target_column]
+
+    if verbose:
+        print(f"Features: {x.shape}")
+        print(f"Target: {y.shape}")
+        try:
+            print(f"Target distribution:\n{y.value_counts(normalize=True)}")
+        except Exception:
+            pass
+
+    return x, y
+
+
 @dataclass
 class PreprocessorBundle:
-    scaler: StandardScaler
-    feature_columns: list[str]
+    transformer: ColumnTransformer
+    input_columns: list[str]
+    numeric_columns: list[str]
+    categorical_columns: list[str]
 
 
 def split_data(
@@ -48,27 +110,64 @@ def split_data(
     return x_train, x_test, y_train, y_test
 
 
-def fit_preprocessor(x_train: pd.DataFrame) -> PreprocessorBundle:
-    """Fit a preprocessor bundle on training features only."""
-    numeric_frame = x_train.select_dtypes(include="number")
-    if numeric_frame.empty:
-        raise ValueError("No numeric feature columns found to fit the preprocessor")
+def fit_preprocessor(
+    x_train: pd.DataFrame,
+    *,
+    numeric_features: list[str] | None = None,
+    categorical_features: list[str] | None = None,
+) -> PreprocessorBundle:
+    """Fit a preprocessor bundle on training features only.
 
-    scaler = StandardScaler()
-    scaler.fit(numeric_frame)
-    return PreprocessorBundle(scaler=scaler, feature_columns=numeric_frame.columns.tolist())
+    - Numeric columns are scaled.
+    - Categorical columns are one-hot encoded.
+    """
+    if numeric_features is None:
+        numeric_columns = x_train.select_dtypes(include="number").columns.tolist()
+    else:
+        numeric_columns = [col for col in numeric_features if col in x_train.columns]
+
+    if categorical_features is None:
+        categorical_columns = x_train.select_dtypes(exclude="number").columns.tolist()
+    else:
+        categorical_columns = [col for col in categorical_features if col in x_train.columns]
+
+    if not numeric_columns and not categorical_columns:
+        raise ValueError("No usable feature columns found to fit the preprocessor")
+
+    transformer = ColumnTransformer(
+        transformers=[
+            ("num", StandardScaler(), numeric_columns),
+            (
+                "cat",
+                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                categorical_columns,
+            ),
+        ],
+        remainder="drop",
+        verbose_feature_names_out=False,
+    )
+    transformer.fit(x_train)
+
+    input_columns = numeric_columns + categorical_columns
+    return PreprocessorBundle(
+        transformer=transformer,
+        input_columns=input_columns,
+        numeric_columns=numeric_columns,
+        categorical_columns=categorical_columns,
+    )
 
 
 def transform_features(features: pd.DataFrame, bundle: PreprocessorBundle) -> pd.DataFrame:
     """Transform features with a fitted preprocessor bundle."""
-    missing_columns = set(bundle.feature_columns) - set(features.columns)
+    missing_columns = set(bundle.input_columns) - set(features.columns)
     if missing_columns:
         missing = ", ".join(sorted(missing_columns))
         raise ValueError(f"Input data is missing required feature columns: {missing}")
 
-    ordered = features[bundle.feature_columns]
-    transformed = bundle.scaler.transform(ordered)
-    return pd.DataFrame(transformed, columns=bundle.feature_columns, index=ordered.index)
+    ordered = features[bundle.input_columns]
+    transformed = bundle.transformer.transform(ordered)
+    output_columns = list(bundle.transformer.get_feature_names_out())
+    return pd.DataFrame(transformed, columns=output_columns, index=ordered.index)
 
 
 def save_preprocessor(bundle: PreprocessorBundle, output_path: str | Path) -> None:
@@ -87,7 +186,7 @@ def preprocess_data(
     *,
     test_size: float = DEFAULT_TEST_SIZE,
     random_state: int = DEFAULT_RANDOM_STATE,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, StandardScaler]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, StandardScaler | None]:
     """Backward-compatible helper for split+fit+transform.
 
     Returns:
@@ -103,4 +202,9 @@ def preprocess_data(
     x_train_scaled = transform_features(x_train, bundle)
     x_test_scaled = transform_features(x_test, bundle)
 
-    return x_train_scaled, x_test_scaled, y_train, y_test, bundle.scaler
+    # Backward-compatible return: last value used to be a scaler.
+    # We now return a StandardScaler when the numeric transformer exists.
+    scaler = None
+    if bundle.numeric_columns:
+        scaler = bundle.transformer.named_transformers_.get("num")
+    return x_train_scaled, x_test_scaled, y_train, y_test, scaler
