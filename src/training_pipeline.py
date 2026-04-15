@@ -16,10 +16,22 @@ from .config import (
     DEFAULT_EXPERIMENT_LOG_PATH,
     DEFAULT_MODEL_PATH,
     DEFAULT_PREPROCESSOR_PATH,
+    ALL_FEATURES,
+    CATEGORICAL_FEATURES,
+    EXCLUDED_COLUMNS,
+    NUMERICAL_FEATURES,
+    TARGET_COLUMN,
+    TARGET_SOURCE_COLUMN,
 )
 from .model import save_model, train_model
 from .problem_type import infer_supervised_problem_type, recommended_metrics
-from .preprocessing import fit_preprocessor, save_preprocessor, split_data, transform_features
+from .preprocessing import (
+    fit_preprocessor,
+    save_preprocessor,
+    separate_features_and_target,
+    split_data,
+    transform_features,
+)
 
 
 def _derive_binary_target(values: pd.Series) -> pd.Series:
@@ -34,12 +46,30 @@ def _prepare_features_and_target(
     if target_column is not None:
         if target_column not in dataframe.columns:
             raise ValueError(f"Column '{target_column}' not found in dataset")
-        return dataframe.drop(columns=[target_column]), dataframe[target_column]
+        # When an explicit target is supplied, treat all remaining columns as candidate features.
+        features = dataframe.drop(columns=[target_column])
+        return features, dataframe[target_column]
 
     # Demo-friendly default: derive a binary target from yield_kg when available.
-    if "yield_kg" in dataframe.columns:
-        target = _derive_binary_target(dataframe["yield_kg"])
-        features = dataframe.drop(columns=["yield_kg"])
+    if TARGET_SOURCE_COLUMN in dataframe.columns:
+        derived_target = _derive_binary_target(dataframe[TARGET_SOURCE_COLUMN]).rename(TARGET_COLUMN)
+
+        # Explicit, reviewable feature selection (5.14)
+        available_features = [col for col in ALL_FEATURES if col in dataframe.columns]
+        if not available_features:
+            raise ValueError("No configured feature columns found in the dataset")
+
+        working = dataframe.copy()
+        working[TARGET_COLUMN] = derived_target
+
+        # Enforce that leakage columns are not used as features
+        features, target = separate_features_and_target(
+            working,
+            target_column=TARGET_COLUMN,
+            feature_columns=available_features,
+            excluded_columns=EXCLUDED_COLUMNS,
+            verbose=False,
+        )
         return features, target
 
     raise ValueError(
@@ -131,7 +161,11 @@ def run_training_pipeline(
     engineered_features = engineer_features(features)
 
     x_train, x_test, y_train, y_test = split_data(engineered_features, target)
-    preprocessor_bundle = fit_preprocessor(x_train)
+    preprocessor_bundle = fit_preprocessor(
+        x_train,
+        numeric_features=NUMERICAL_FEATURES,
+        categorical_features=CATEGORICAL_FEATURES,
+    )
     x_train_prepared = transform_features(x_train, preprocessor_bundle)
     x_test_prepared = transform_features(x_test, preprocessor_bundle)
 

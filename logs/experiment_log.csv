@@ -5,3 +5,4 @@ timestamp_utc,model_path,preprocessor_path,accuracy,precision,recall,f1_score
 2026-04-15T08:43:08+00:00,C:\Users\vaishnavi\OneDrive\Desktop\S81-tokyoriders-AgroLens\models\model.pkl,C:\Users\vaishnavi\OneDrive\Desktop\S81-tokyoriders-AgroLens\models\preprocessor.pkl,0.0,0.0,0.0,0.0
 2026-04-15T08:43:11+00:00,C:\Users\vaishnavi\OneDrive\Desktop\S81-tokyoriders-AgroLens\models\model.pkl,C:\Users\vaishnavi\OneDrive\Desktop\S81-tokyoriders-AgroLens\models\preprocessor.pkl,0.0,0.0,0.0,0.0
 2026-04-15T09:11:07+00:00,C:\Users\vaishnavi\OneDrive\Desktop\S81-tokyoriders-AgroLens\models\model.pkl,C:\Users\vaishnavi\OneDrive\Desktop\S81-tokyoriders-AgroLens\models\preprocessor.pkl,0.0,0.0,0.0,0.0
+2026-04-15T09:28:31+00:00,C:\Users\vaishnavi\OneDrive\Desktop\S81-tokyoriders-AgroLens\models\model.pkl,C:\Users\vaishnavi\OneDrive\Desktop\S81-tokyoriders-AgroLens\models\preprocessor.pkl,0.0,0.0,0.0,0.0
