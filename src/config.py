@@ -66,6 +66,11 @@ ALL_FEATURES = NUMERICAL_FEATURES + CATEGORICAL_FEATURES
 
 assert TARGET_COLUMN not in ALL_FEATURES, "Target leaked into features!"
 assert TARGET_SOURCE_COLUMN not in ALL_FEATURES, "Target source leaked into features!"
+assert not (set(NUMERICAL_FEATURES) & set(CATEGORICAL_FEATURES)), (
+    "Feature is listed as both numeric and categorical!"
+)
+assert len(ALL_FEATURES) == len(set(ALL_FEATURES)), "Duplicate feature names found in ALL_FEATURES!"
+assert not (set(EXCLUDED_COLUMNS) & set(ALL_FEATURES)), "Excluded columns found in ALL_FEATURES!"
 
 
 @dataclass(frozen=True)

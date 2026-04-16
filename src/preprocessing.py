@@ -169,6 +169,11 @@ def fit_preprocessor(
     else:
         categorical_columns = [col for col in categorical_features if col in x_train.columns]
 
+    overlap = set(numeric_columns) & set(categorical_columns)
+    if overlap:
+        overlapped = ", ".join(sorted(overlap))
+        raise ValueError(f"Features cannot be both numeric and categorical: {overlapped}")
+
     if not numeric_columns and not categorical_columns:
         raise ValueError("No usable feature columns found to fit the preprocessor")
 
