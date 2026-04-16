@@ -29,6 +29,11 @@ DEFAULT_EVALUATION_REPORT_PATH = REPORTS_DIR / "evaluation_report.json"
 DEFAULT_DISTRIBUTION_REPORT_PATH = REPORTS_DIR / "feature_distribution_report.json"
 DEFAULT_EXPERIMENT_LOG_PATH = LOGS_DIR / "experiment_log.csv"
 
+DEFAULT_REGRESSION_MODEL_PATH = MODELS_DIR / "regression_model.pkl"
+DEFAULT_REGRESSION_PREPROCESSOR_PATH = MODELS_DIR / "regression_preprocessor.pkl"
+DEFAULT_REGRESSION_EVALUATION_REPORT_PATH = REPORTS_DIR / "regression_evaluation_report.json"
+DEFAULT_REGRESSION_EXPERIMENT_LOG_PATH = LOGS_DIR / "regression_experiment_log.csv"
+
 DEFAULT_DISTRIBUTION_FIGURES_DIR = FIGURES_DIR / "feature_distributions"
 
 DEFAULT_RANDOM_STATE = 42
