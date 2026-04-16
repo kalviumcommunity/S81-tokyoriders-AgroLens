@@ -17,13 +17,18 @@ from .regression_training_pipeline import run_regression_training_pipeline
 from .training_pipeline import run_training_pipeline
 
 
-def print_metrics(metrics: dict[str, float | str]) -> None:
+def print_metrics(metrics: dict[str, float | str | None]) -> None:
     """Print evaluation metrics in a compact and readable form."""
     print("Training pipeline completed successfully.")
     print(f"Accuracy:  {metrics['accuracy']:.4f}")
     print(f"Precision: {metrics['precision']:.4f}")
     print(f"Recall:    {metrics['recall']:.4f}")
     print(f"F1 score:  {metrics['f1_score']:.4f}")
+
+    roc_auc = metrics.get("roc_auc")
+    if isinstance(roc_auc, float):
+        print(f"ROC-AUC:  {roc_auc:.4f}")
+
     print("\nClassification report:")
     print(metrics["classification_report"])
 

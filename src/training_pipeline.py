@@ -107,7 +107,7 @@ def _synthetic_training_data(
     return features, target
 
 
-def _write_json_report(metrics: dict[str, float | str], path: str | Path) -> None:
+def _write_json_report(metrics: dict[str, float | str | None], path: str | Path) -> None:
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with destination.open("w", encoding="utf-8") as file_handle:
@@ -119,7 +119,7 @@ def _append_experiment_log(
     log_path: str | Path,
     model_path: str | Path,
     preprocessor_path: str | Path,
-    metrics: dict[str, float | str],
+    metrics: dict[str, float | str | None],
 ) -> None:
     destination = Path(log_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -156,7 +156,7 @@ def run_training_pipeline(
     random_state: int = DEFAULT_RANDOM_STATE,
     time_column: str | None = None,
     numeric_scaler: str = "standard",
-) -> dict[str, float | str]:
+) -> dict[str, float | str | None]:
     """Train and evaluate a model, then persist model and preprocessing artifacts."""
     try:
         raw_frame = load_training_frame(data_path)
@@ -218,9 +218,17 @@ def run_training_pipeline(
 
     metrics["baseline_strategy"] = "most_frequent"
     metrics["baseline_classification_report"] = baseline_metrics["classification_report"]
-    for key in ("accuracy", "precision", "recall", "f1_score"):
-        metrics[f"baseline_{key}"] = float(baseline_metrics[key])
-        metrics[f"improvement_{key}"] = float(metrics[key]) - float(baseline_metrics[key])
+
+    for key in ("accuracy", "precision", "recall", "f1_score", "roc_auc"):
+        baseline_value = baseline_metrics.get(key)
+        model_value = metrics.get(key)
+
+        metrics[f"baseline_{key}"] = baseline_value
+        if baseline_value is None or model_value is None:
+            metrics[f"improvement_{key}"] = None
+        else:
+            metrics[f"baseline_{key}"] = float(baseline_value)
+            metrics[f"improvement_{key}"] = float(model_value) - float(baseline_value)
 
     save_model(trained_model, model_output_path)
     save_preprocessor(preprocessor_bundle, preprocessor_output_path)
