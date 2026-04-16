@@ -7,7 +7,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import KFold, cross_val_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
 
 from .config import (
     ALL_FEATURES,
@@ -57,11 +62,48 @@ def _prepare_features_and_target(
     )
 
 
-def _write_json_report(metrics: dict[str, float | str], path: str | Path) -> None:
+def _build_unfitted_preprocessor(
+    features: pd.DataFrame,
+    *,
+    numeric_scaler: str,
+) -> ColumnTransformer:
+    numeric_columns = [col for col in NUMERICAL_FEATURES if col in features.columns]
+    categorical_columns = [col for col in CATEGORICAL_FEATURES if col in features.columns]
+
+    overlap = set(numeric_columns) & set(categorical_columns)
+    if overlap:
+        overlapped = ", ".join(sorted(overlap))
+        raise ValueError(f"Features cannot be both numeric and categorical: {overlapped}")
+
+    if not numeric_columns and not categorical_columns:
+        raise ValueError("No usable feature columns found to fit the preprocessor")
+
+    if numeric_scaler == "standard":
+        numeric_transformer = StandardScaler()
+    elif numeric_scaler == "minmax":
+        numeric_transformer = MinMaxScaler()
+    else:
+        raise ValueError("numeric_scaler must be either 'standard' or 'minmax'")
+
+    return ColumnTransformer(
+        transformers=[
+            ("num", numeric_transformer, numeric_columns),
+            (
+                "cat",
+                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                categorical_columns,
+            ),
+        ],
+        remainder="drop",
+        verbose_feature_names_out=False,
+    )
+
+
+def _write_json_report(metrics: dict[str, float | str | int | None], path: str | Path) -> None:
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
 
-    sanitized: dict[str, float | str | None] = {}
+    sanitized: dict[str, float | str | int | None] = {}
     for key, value in metrics.items():
         if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
             sanitized[key] = None
@@ -77,7 +119,7 @@ def _append_regression_experiment_log(
     log_path: str | Path,
     model_path: str | Path,
     preprocessor_path: str | Path,
-    metrics: dict[str, float | str],
+    metrics: dict[str, float | str | int | None],
 ) -> None:
     destination = Path(log_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -112,7 +154,8 @@ def run_regression_training_pipeline(
     time_column: str | None = None,
     numeric_scaler: str = "standard",
     baseline_strategy: str = "mean",
-) -> dict[str, float | str]:
+    cv_folds: int = 5,
+) -> dict[str, float | str | int | None]:
     """Train and evaluate a Linear Regression model with a constant baseline."""
     raw_frame = load_training_frame(data_path)
     features, target = _prepare_features_and_target(raw_frame, target_column)
@@ -136,6 +179,32 @@ def run_regression_training_pipeline(
         time_column=time_column,
     )
 
+    metrics: dict[str, float | str | int | None] = {}
+
+    # Cross-validation MAE (computed on training data only).
+    if cv_folds >= 2 and len(x_train) >= 2:
+        n_splits = min(int(cv_folds), int(len(x_train)))
+        if n_splits >= 2:
+            cv_preprocessor = _build_unfitted_preprocessor(x_train, numeric_scaler=numeric_scaler)
+            cv_model = LinearRegression()
+            cv_pipeline = Pipeline([
+                ("preprocessor", cv_preprocessor),
+                ("model", cv_model),
+            ])
+
+            cv = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+            cv_scores = cross_val_score(
+                cv_pipeline,
+                x_train,
+                y_train,
+                cv=cv,
+                scoring="neg_mean_absolute_error",
+            )
+            mae_scores = (-cv_scores).astype(float)
+            metrics["cv_mae_mean"] = float(mae_scores.mean())
+            metrics["cv_mae_std"] = float(mae_scores.std())
+            metrics["cv_folds"] = int(n_splits)
+
     preprocessor_bundle = fit_preprocessor(
         x_train,
         numeric_features=NUMERICAL_FEATURES,
@@ -150,15 +219,35 @@ def run_regression_training_pipeline(
     baseline_metrics = evaluate_regression_model(baseline, x_test_prepared, y_test)
 
     trained_model = train_regression_model(x_train_prepared, y_train)
-    metrics = evaluate_regression_model(trained_model, x_test_prepared, y_test)
+    model_metrics = evaluate_regression_model(trained_model, x_test_prepared, y_test)
+    metrics.update(model_metrics)
+
+    baseline_mae = float(baseline_metrics["mae"])
+    model_mae = float(metrics["mae"])
+    improvement_mae = baseline_mae - model_mae
 
     metrics["baseline_strategy"] = baseline_strategy
     metrics["baseline_rmse"] = float(baseline_metrics["rmse"])
-    metrics["baseline_mae"] = float(baseline_metrics["mae"])
+    metrics["baseline_mae"] = baseline_mae
     metrics["baseline_r2"] = float(baseline_metrics["r2"])
     metrics["improvement_rmse"] = float(baseline_metrics["rmse"]) - float(metrics["rmse"])
-    metrics["improvement_mae"] = float(baseline_metrics["mae"]) - float(metrics["mae"])
+    metrics["improvement_mae"] = improvement_mae
     metrics["improvement_r2"] = float(metrics["r2"]) - float(baseline_metrics["r2"])
+
+    if baseline_mae != 0:
+        metrics["improvement_mae_pct"] = float((improvement_mae / baseline_mae) * 100)
+    else:
+        metrics["improvement_mae_pct"] = None
+
+    mean_target = float(y_test.mean())
+    metrics["mean_target"] = mean_target
+    if mean_target != 0:
+        denom = abs(mean_target)
+        metrics["mae_pct_of_mean_target"] = float((model_mae / denom) * 100)
+        metrics["baseline_mae_pct_of_mean_target"] = float((baseline_mae / denom) * 100)
+    else:
+        metrics["mae_pct_of_mean_target"] = None
+        metrics["baseline_mae_pct_of_mean_target"] = None
 
     save_regression_model(trained_model, model_output_path)
     save_preprocessor(preprocessor_bundle, preprocessor_output_path)
