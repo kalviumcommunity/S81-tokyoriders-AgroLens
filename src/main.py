@@ -63,6 +63,13 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional column name for chronological splitting (time-series)",
     )
+    train_parser.add_argument(
+        "--numeric-scaler",
+        type=str,
+        default="standard",
+        choices=["standard", "minmax"],
+        help="Numeric scaling strategy: 'standard' or 'minmax'",
+    )
 
     predict_parser = subparsers.add_parser("predict", help="Run inference from saved artifacts")
     predict_parser.add_argument("--data-path", type=str, required=True, help="CSV path for inference")
@@ -107,6 +114,7 @@ def main() -> None:
             test_size=arguments.test_size,
             random_state=arguments.random_state,
             time_column=arguments.time_column,
+            numeric_scaler=arguments.numeric_scaler,
         )
         print_metrics(metrics)
         print(f"Model saved to: {Path(arguments.model_path)}")

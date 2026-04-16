@@ -51,6 +51,13 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional column name for chronological splitting (time-series)",
     )
+    parser.add_argument(
+        "--numeric-scaler",
+        type=str,
+        default="standard",
+        choices=["standard", "minmax"],
+        help="Numeric scaling strategy: 'standard' or 'minmax'",
+    )
     return parser.parse_args()
 
 
@@ -64,6 +71,7 @@ def main() -> None:
         test_size=args.test_size,
         random_state=args.random_state,
         time_column=args.time_column,
+        numeric_scaler=args.numeric_scaler,
     )
 
     print("Training completed.")
