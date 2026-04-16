@@ -23,6 +23,8 @@ from .config import (
     DEFAULT_DISTRIBUTION_REPORT_PATH,
     DEFAULT_MODEL_PATH,
     DEFAULT_PREPROCESSOR_PATH,
+    DEFAULT_RANDOM_STATE,
+    DEFAULT_TEST_SIZE,
     ALL_FEATURES,
     CATEGORICAL_FEATURES,
     EXCLUDED_COLUMNS,
@@ -149,6 +151,9 @@ def run_training_pipeline(
     distribution_figures_dir: str | Path | None = DEFAULT_DISTRIBUTION_FIGURES_DIR,
     evaluation_report_path: str | Path | None = DEFAULT_EVALUATION_REPORT_PATH,
     experiment_log_path: str | Path | None = DEFAULT_EXPERIMENT_LOG_PATH,
+    test_size: float = DEFAULT_TEST_SIZE,
+    random_state: int = DEFAULT_RANDOM_STATE,
+    time_column: str | None = None,
 ) -> dict[str, float | str]:
     """Train and evaluate a model, then persist model and preprocessing artifacts."""
     try:
@@ -169,7 +174,13 @@ def run_training_pipeline(
 
     engineered_features = engineer_features(features)
 
-    x_train, x_test, y_train, y_test = split_data(engineered_features, target)
+    x_train, x_test, y_train, y_test = split_data(
+        engineered_features,
+        target,
+        test_size=test_size,
+        random_state=random_state,
+        time_column=time_column,
+    )
 
     numeric_columns_for_inspection = x_train.select_dtypes(include="number").columns.tolist()
 
