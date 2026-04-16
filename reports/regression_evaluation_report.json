@@ -1,0 +1,13 @@
+{
+  "mse": 2.4500991619410004,
+  "rmse": 1.565279260049465,
+  "mae": 1.565279260049465,
+  "r2": null,
+  "baseline_strategy": "mean",
+  "baseline_rmse": 66.66666666666663,
+  "baseline_mae": 66.66666666666663,
+  "baseline_r2": null,
+  "improvement_rmse": 65.10138740661716,
+  "improvement_mae": 65.10138740661716,
+  "improvement_r2": null
+}

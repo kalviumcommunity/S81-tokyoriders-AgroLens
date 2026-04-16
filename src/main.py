@@ -8,9 +8,12 @@ from .config import (
     DEFAULT_PREDICTIONS_PATH,
     DEFAULT_PREPROCESSOR_PATH,
     DEFAULT_RANDOM_STATE,
+    DEFAULT_REGRESSION_MODEL_PATH,
+    DEFAULT_REGRESSION_PREPROCESSOR_PATH,
     DEFAULT_TEST_SIZE,
 )
 from .prediction_pipeline import run_prediction_pipeline
+from .regression_training_pipeline import run_regression_training_pipeline
 from .training_pipeline import run_training_pipeline
 
 
@@ -23,6 +26,14 @@ def print_metrics(metrics: dict[str, float | str]) -> None:
     print(f"F1 score:  {metrics['f1_score']:.4f}")
     print("\nClassification report:")
     print(metrics["classification_report"])
+
+
+def print_regression_metrics(metrics: dict[str, float | str]) -> None:
+    """Print regression metrics in a compact and readable form."""
+    print("Regression training pipeline completed successfully.")
+    print(f"RMSE: {metrics['rmse']:.4f}")
+    print(f"MAE:  {metrics['mae']:.4f}")
+    print(f"R²:   {metrics['r2']:.4f}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -71,6 +82,64 @@ def parse_args() -> argparse.Namespace:
         help="Numeric scaling strategy: 'standard' or 'minmax'",
     )
 
+    train_regression_parser = subparsers.add_parser(
+        "train-regression",
+        help="Train a Linear Regression model and save artifacts",
+    )
+    train_regression_parser.add_argument(
+        "--data-path", type=str, default=None, help="Optional CSV path"
+    )
+    train_regression_parser.add_argument(
+        "--target-column",
+        type=str,
+        default=None,
+        help="Regression target column name (defaults to yield_kg)",
+    )
+    train_regression_parser.add_argument(
+        "--model-path",
+        type=str,
+        default=str(DEFAULT_REGRESSION_MODEL_PATH),
+        help="Destination path for trained regression model",
+    )
+    train_regression_parser.add_argument(
+        "--preprocessor-path",
+        type=str,
+        default=str(DEFAULT_REGRESSION_PREPROCESSOR_PATH),
+        help="Destination path for fitted preprocessor",
+    )
+    train_regression_parser.add_argument(
+        "--test-size",
+        type=float,
+        default=float(DEFAULT_TEST_SIZE),
+        help="Proportion of data held out for testing (0-1)",
+    )
+    train_regression_parser.add_argument(
+        "--random-state",
+        type=int,
+        default=int(DEFAULT_RANDOM_STATE),
+        help="Random seed for reproducible splitting",
+    )
+    train_regression_parser.add_argument(
+        "--time-column",
+        type=str,
+        default=None,
+        help="Optional column name for chronological splitting (time-series)",
+    )
+    train_regression_parser.add_argument(
+        "--numeric-scaler",
+        type=str,
+        default="standard",
+        choices=["standard", "minmax"],
+        help="Numeric scaling strategy: 'standard' or 'minmax'",
+    )
+    train_regression_parser.add_argument(
+        "--baseline-strategy",
+        type=str,
+        default="mean",
+        choices=["mean", "median"],
+        help="Baseline strategy for DummyRegressor",
+    )
+
     predict_parser = subparsers.add_parser("predict", help="Run inference from saved artifacts")
     predict_parser.add_argument("--data-path", type=str, required=True, help="CSV path for inference")
     predict_parser.add_argument(
@@ -117,6 +186,23 @@ def main() -> None:
             numeric_scaler=arguments.numeric_scaler,
         )
         print_metrics(metrics)
+        print(f"Model saved to: {Path(arguments.model_path)}")
+        print(f"Preprocessor saved to: {Path(arguments.preprocessor_path)}")
+        return
+
+    if arguments.command == "train-regression":
+        metrics = run_regression_training_pipeline(
+            data_path=arguments.data_path,
+            target_column=arguments.target_column,
+            model_output_path=arguments.model_path,
+            preprocessor_output_path=arguments.preprocessor_path,
+            test_size=arguments.test_size,
+            random_state=arguments.random_state,
+            time_column=arguments.time_column,
+            numeric_scaler=arguments.numeric_scaler,
+            baseline_strategy=arguments.baseline_strategy,
+        )
+        print_regression_metrics(metrics)
         print(f"Model saved to: {Path(arguments.model_path)}")
         print(f"Preprocessor saved to: {Path(arguments.preprocessor_path)}")
         return
