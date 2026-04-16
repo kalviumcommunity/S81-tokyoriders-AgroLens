@@ -6,6 +6,7 @@ import math
 from datetime import datetime, timezone
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyRegressor
@@ -181,28 +182,62 @@ def run_regression_training_pipeline(
 
     metrics: dict[str, float | str | int | None] = {}
 
-    # Cross-validation MAE (computed on training data only).
+    # Cross-validation (computed on training data only; preprocessing is fitted inside each fold).
     if cv_folds >= 2 and len(x_train) >= 2:
         n_splits = min(int(cv_folds), int(len(x_train)))
         if n_splits >= 2:
             cv_preprocessor = _build_unfitted_preprocessor(x_train, numeric_scaler=numeric_scaler)
             cv_model = LinearRegression()
-            cv_pipeline = Pipeline([
-                ("preprocessor", cv_preprocessor),
-                ("model", cv_model),
-            ])
+            cv_pipeline = Pipeline(
+                [
+                    ("preprocessor", cv_preprocessor),
+                    ("model", cv_model),
+                ]
+            )
 
             cv = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
-            cv_scores = cross_val_score(
+
+            # MAE (negated by sklearn; flip sign for reporting).
+            cv_mae_scores = -cross_val_score(
                 cv_pipeline,
                 x_train,
                 y_train,
                 cv=cv,
                 scoring="neg_mean_absolute_error",
             )
-            mae_scores = (-cv_scores).astype(float)
-            metrics["cv_mae_mean"] = float(mae_scores.mean())
-            metrics["cv_mae_std"] = float(mae_scores.std())
+            cv_mae_scores = cv_mae_scores.astype(float)
+            metrics["cv_mae_mean"] = float(cv_mae_scores.mean())
+            metrics["cv_mae_std"] = float(cv_mae_scores.std())
+
+            # MSE/RMSE (MSE negated by sklearn; flip sign; RMSE is sqrt(MSE)).
+            cv_mse_scores = -cross_val_score(
+                cv_pipeline,
+                x_train,
+                y_train,
+                cv=cv,
+                scoring="neg_mean_squared_error",
+            )
+            cv_mse_scores = cv_mse_scores.astype(float)
+            cv_rmse_scores = np.sqrt(cv_mse_scores)
+            metrics["cv_mse_mean"] = float(cv_mse_scores.mean())
+            metrics["cv_mse_std"] = float(cv_mse_scores.std())
+            metrics["cv_rmse_mean"] = float(cv_rmse_scores.mean())
+            metrics["cv_rmse_std"] = float(cv_rmse_scores.std())
+
+            # R² requires at least 2 samples in each test fold.
+            min_test_fold_size = int(len(x_train)) // int(n_splits)
+            if min_test_fold_size >= 2:
+                cv_r2_scores = cross_val_score(
+                    cv_pipeline,
+                    x_train,
+                    y_train,
+                    cv=cv,
+                    scoring="r2",
+                )
+                cv_r2_scores = cv_r2_scores.astype(float)
+                metrics["cv_r2_mean"] = float(cv_r2_scores.mean())
+                metrics["cv_r2_std"] = float(cv_r2_scores.std())
+
             metrics["cv_folds"] = int(n_splits)
 
     preprocessor_bundle = fit_preprocessor(
@@ -222,17 +257,29 @@ def run_regression_training_pipeline(
     model_metrics = evaluate_regression_model(trained_model, x_test_prepared, y_test)
     metrics.update(model_metrics)
 
+    baseline_mse = float(baseline_metrics["mse"])
+    model_mse = float(metrics["mse"])
+    improvement_mse = baseline_mse - model_mse
+
     baseline_mae = float(baseline_metrics["mae"])
     model_mae = float(metrics["mae"])
     improvement_mae = baseline_mae - model_mae
 
     metrics["baseline_strategy"] = baseline_strategy
+    metrics["baseline_mse"] = baseline_mse
     metrics["baseline_rmse"] = float(baseline_metrics["rmse"])
     metrics["baseline_mae"] = baseline_mae
     metrics["baseline_r2"] = float(baseline_metrics["r2"])
+
+    metrics["improvement_mse"] = improvement_mse
     metrics["improvement_rmse"] = float(baseline_metrics["rmse"]) - float(metrics["rmse"])
     metrics["improvement_mae"] = improvement_mae
     metrics["improvement_r2"] = float(metrics["r2"]) - float(baseline_metrics["r2"])
+
+    if baseline_mse != 0:
+        metrics["improvement_mse_pct"] = float((improvement_mse / baseline_mse) * 100)
+    else:
+        metrics["improvement_mse_pct"] = None
 
     if baseline_mae != 0:
         metrics["improvement_mae_pct"] = float((improvement_mae / baseline_mae) * 100)

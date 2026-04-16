@@ -28,9 +28,10 @@ def print_metrics(metrics: dict[str, float | str]) -> None:
     print(metrics["classification_report"])
 
 
-def print_regression_metrics(metrics: dict[str, float | str]) -> None:
+def print_regression_metrics(metrics: dict[str, float | str | int | None]) -> None:
     """Print regression metrics in a compact and readable form."""
     print("Regression training pipeline completed successfully.")
+    print(f"MSE:  {metrics['mse']:.4f}")
     print(f"RMSE: {metrics['rmse']:.4f}")
     print(f"MAE:  {metrics['mae']:.4f}")
     print(f"R²:   {metrics['r2']:.4f}")
