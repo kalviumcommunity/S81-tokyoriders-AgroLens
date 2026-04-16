@@ -117,6 +117,40 @@ This project defines features and the target explicitly in `src/config.py`.
 - **Problem type:** binary classification
 - **Metrics:** accuracy, precision, recall, F1 (ROC-AUC can be added when probability outputs are used)
 
+## 0.2 Data Splitting (5.16)
+
+This project performs an **honest train/test split** before fitting any preprocessing.
+
+- Split happens in [src/training_pipeline.py](src/training_pipeline.py) via `split_data(...)` from [src/preprocessing.py](src/preprocessing.py).
+- Preprocessing is fit only on `X_train` (`fit_preprocessor(X_train)`), then applied to both train and test (`transform_features(...)`).
+- For classification targets, the default split attempts **stratification** to preserve class balance.
+
+### Default split strategy (random + stratified)
+
+```python
+x_train, x_test, y_train, y_test = split_data(features, target)
+```
+
+### Time-series / chronological split (no shuffle)
+
+If your dataset is time-ordered, pass a time column:
+
+```python
+x_train, x_test, y_train, y_test = split_data(features, target, time_column="Date")
+```
+
+### CLI control
+
+```powershell
+python -m src.main train --test-size 0.2 --random-state 42
+```
+
+For time-series:
+
+```powershell
+python -m src.main train --time-column Date
+```
+
 ## 1. Project Intent and High-Level Flow
 
 The core problem this project targets is practical uncertainty: farmers make crop and selling decisions before they know future demand, price movement, and climate stress. The intent is not only to predict a number, but to support better decisions under risk. In this context, the central question is: *Which crop and timing choices are most likely to give stable returns in the coming season for a given region?*

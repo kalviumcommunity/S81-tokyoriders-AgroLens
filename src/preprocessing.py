@@ -85,12 +85,50 @@ def split_data(
     *,
     test_size: float = DEFAULT_TEST_SIZE,
     random_state: int = DEFAULT_RANDOM_STATE,
+    time_column: str | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     """Split features and target into train/test subsets.
+
+    - Default (classification-friendly): random split with stratification when possible.
+    - Time-series option: set time_column to split chronologically (no shuffle).
 
     Returns:
         X_train, X_test, y_train, y_test
     """
+    if not 0 < test_size < 1:
+        raise ValueError("test_size must be between 0 and 1")
+
+    if len(features) != len(target):
+        raise ValueError("Features and target must have the same number of rows")
+
+    if time_column is not None:
+        if time_column not in features.columns:
+            raise ValueError(f"time_column '{time_column}' not found in features")
+        if not features.index.isin(target.index).all():
+            raise ValueError("Target index does not align with feature index for time-based split")
+
+        aligned_target = target.reindex(features.index)
+        time_values = features[time_column]
+        if time_values.isna().any():
+            raise ValueError(f"time_column '{time_column}' contains missing values")
+
+        if pd.api.types.is_object_dtype(time_values) or pd.api.types.is_string_dtype(time_values):
+            time_values = pd.to_datetime(time_values, errors="raise")
+
+        ordered_index = time_values.sort_values(kind="mergesort").index
+        ordered_features = features.loc[ordered_index]
+        ordered_target = aligned_target.loc[ordered_index]
+
+        split_at = int(len(ordered_features) * (1 - test_size))
+        if split_at <= 0 or split_at >= len(ordered_features):
+            raise ValueError("test_size results in an empty train or test split")
+
+        x_train = ordered_features.iloc[:split_at]
+        x_test = ordered_features.iloc[split_at:]
+        y_train = ordered_target.iloc[:split_at]
+        y_test = ordered_target.iloc[split_at:]
+        return x_train, x_test, y_train, y_test
+
     try:
         x_train, x_test, y_train, y_test = train_test_split(
             features,

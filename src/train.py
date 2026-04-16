@@ -3,7 +3,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .config import DEFAULT_MODEL_PATH, DEFAULT_PREPROCESSOR_PATH
+from .config import (
+    DEFAULT_MODEL_PATH,
+    DEFAULT_PREPROCESSOR_PATH,
+    DEFAULT_RANDOM_STATE,
+    DEFAULT_TEST_SIZE,
+)
 from .training_pipeline import run_training_pipeline
 
 
@@ -28,6 +33,24 @@ def parse_args() -> argparse.Namespace:
         default=str(DEFAULT_PREPROCESSOR_PATH),
         help="Destination path for fitted preprocessor",
     )
+    parser.add_argument(
+        "--test-size",
+        type=float,
+        default=float(DEFAULT_TEST_SIZE),
+        help="Proportion of data held out for testing (0-1)",
+    )
+    parser.add_argument(
+        "--random-state",
+        type=int,
+        default=int(DEFAULT_RANDOM_STATE),
+        help="Random seed for reproducible splitting",
+    )
+    parser.add_argument(
+        "--time-column",
+        type=str,
+        default=None,
+        help="Optional column name for chronological splitting (time-series)",
+    )
     return parser.parse_args()
 
 
@@ -38,6 +61,9 @@ def main() -> None:
         target_column=args.target_column,
         model_output_path=Path(args.model_path),
         preprocessor_output_path=Path(args.preprocessor_path),
+        test_size=args.test_size,
+        random_state=args.random_state,
+        time_column=args.time_column,
     )
 
     print("Training completed.")

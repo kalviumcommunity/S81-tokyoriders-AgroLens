@@ -3,7 +3,13 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .config import DEFAULT_MODEL_PATH, DEFAULT_PREDICTIONS_PATH, DEFAULT_PREPROCESSOR_PATH
+from .config import (
+    DEFAULT_MODEL_PATH,
+    DEFAULT_PREDICTIONS_PATH,
+    DEFAULT_PREPROCESSOR_PATH,
+    DEFAULT_RANDOM_STATE,
+    DEFAULT_TEST_SIZE,
+)
 from .prediction_pipeline import run_prediction_pipeline
 from .training_pipeline import run_training_pipeline
 
@@ -38,6 +44,24 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default=str(DEFAULT_PREPROCESSOR_PATH),
         help="Destination path for fitted preprocessor",
+    )
+    train_parser.add_argument(
+        "--test-size",
+        type=float,
+        default=float(DEFAULT_TEST_SIZE),
+        help="Proportion of data held out for testing (0-1)",
+    )
+    train_parser.add_argument(
+        "--random-state",
+        type=int,
+        default=int(DEFAULT_RANDOM_STATE),
+        help="Random seed for reproducible splitting",
+    )
+    train_parser.add_argument(
+        "--time-column",
+        type=str,
+        default=None,
+        help="Optional column name for chronological splitting (time-series)",
     )
 
     predict_parser = subparsers.add_parser("predict", help="Run inference from saved artifacts")
@@ -80,6 +104,9 @@ def main() -> None:
             target_column=arguments.target_column,
             model_output_path=arguments.model_path,
             preprocessor_output_path=arguments.preprocessor_path,
+            test_size=arguments.test_size,
+            random_state=arguments.random_state,
+            time_column=arguments.time_column,
         )
         print_metrics(metrics)
         print(f"Model saved to: {Path(arguments.model_path)}")
