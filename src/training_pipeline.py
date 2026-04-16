@@ -154,6 +154,7 @@ def run_training_pipeline(
     test_size: float = DEFAULT_TEST_SIZE,
     random_state: int = DEFAULT_RANDOM_STATE,
     time_column: str | None = None,
+    numeric_scaler: str = "standard",
 ) -> dict[str, float | str]:
     """Train and evaluate a model, then persist model and preprocessing artifacts."""
     try:
@@ -202,6 +203,7 @@ def run_training_pipeline(
         x_train,
         numeric_features=NUMERICAL_FEATURES,
         categorical_features=CATEGORICAL_FEATURES,
+        numeric_scaler=numeric_scaler,
     )
     x_train_prepared = transform_features(x_train, preprocessor_bundle)
     x_test_prepared = transform_features(x_test, preprocessor_bundle)

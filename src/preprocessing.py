@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
 
 from .config import DEFAULT_RANDOM_STATE, DEFAULT_TEST_SIZE
 from .persistence import load_pickle_typed, save_pickle
@@ -153,11 +153,16 @@ def fit_preprocessor(
     *,
     numeric_features: list[str] | None = None,
     categorical_features: list[str] | None = None,
+    numeric_scaler: str = "standard",
 ) -> PreprocessorBundle:
     """Fit a preprocessor bundle on training features only.
 
     - Numeric columns are scaled.
     - Categorical columns are one-hot encoded.
+
+    numeric_scaler:
+        - "standard" (default): StandardScaler (mean=0, std=1)
+        - "minmax": MinMaxScaler (range [0, 1])
     """
     if numeric_features is None:
         numeric_columns = x_train.select_dtypes(include="number").columns.tolist()
@@ -177,9 +182,16 @@ def fit_preprocessor(
     if not numeric_columns and not categorical_columns:
         raise ValueError("No usable feature columns found to fit the preprocessor")
 
+    if numeric_scaler == "standard":
+        numeric_transformer = StandardScaler()
+    elif numeric_scaler == "minmax":
+        numeric_transformer = MinMaxScaler()
+    else:
+        raise ValueError("numeric_scaler must be either 'standard' or 'minmax'")
+
     transformer = ColumnTransformer(
         transformers=[
-            ("num", StandardScaler(), numeric_columns),
+            ("num", numeric_transformer, numeric_columns),
             (
                 "cat",
                 OneHotEncoder(handle_unknown="ignore", sparse_output=False),
@@ -229,7 +241,7 @@ def preprocess_data(
     *,
     test_size: float = DEFAULT_TEST_SIZE,
     random_state: int = DEFAULT_RANDOM_STATE,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, StandardScaler | None]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, StandardScaler | MinMaxScaler | None]:
     """Backward-compatible helper for split+fit+transform.
 
     Returns:
