@@ -1,4 +1,7 @@
 {
+  "cv_mae_mean": 811.7456896551724,
+  "cv_mae_std": 754.6141988576798,
+  "cv_folds": 3,
   "mse": 2.4500991619410004,
   "rmse": 1.565279260049465,
   "mae": 1.565279260049465,
@@ -9,5 +12,9 @@
   "baseline_r2": null,
   "improvement_rmse": 65.10138740661716,
   "improvement_mae": 65.10138740661716,
-  "improvement_r2": null
+  "improvement_r2": null,
+  "improvement_mae_pct": 97.6520811099258,
+  "mean_target": 1000.0,
+  "mae_pct_of_mean_target": 0.1565279260049465,
+  "baseline_mae_pct_of_mean_target": 6.6666666666666625
 }

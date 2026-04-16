@@ -139,6 +139,12 @@ def parse_args() -> argparse.Namespace:
         choices=["mean", "median"],
         help="Baseline strategy for DummyRegressor",
     )
+    train_regression_parser.add_argument(
+        "--cv-folds",
+        type=int,
+        default=5,
+        help="Cross-validation folds for MAE (>=2). Use 0 to disable.",
+    )
 
     predict_parser = subparsers.add_parser("predict", help="Run inference from saved artifacts")
     predict_parser.add_argument("--data-path", type=str, required=True, help="CSV path for inference")
@@ -201,6 +207,7 @@ def main() -> None:
             time_column=arguments.time_column,
             numeric_scaler=arguments.numeric_scaler,
             baseline_strategy=arguments.baseline_strategy,
+            cv_folds=arguments.cv_folds,
         )
         print_regression_metrics(metrics)
         print(f"Model saved to: {Path(arguments.model_path)}")
