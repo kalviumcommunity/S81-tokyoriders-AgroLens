@@ -13,7 +13,7 @@ def train_model(
     x_train: pd.DataFrame,
     y_train: pd.Series,
     *,
-    max_iter: int = 500,
+    max_iter: int = 1000,
     random_state: int = DEFAULT_RANDOM_STATE,
 ) -> LogisticRegression:
     """Train and return a Logistic Regression classifier."""
