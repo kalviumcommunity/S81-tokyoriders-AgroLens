@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 from sklearn.datasets import make_classification
+from sklearn.dummy import DummyClassifier
 
 from .data_loader import load_training_frame
 from .evaluate import evaluate_model
@@ -208,8 +209,18 @@ def run_training_pipeline(
     x_train_prepared = transform_features(x_train, preprocessor_bundle)
     x_test_prepared = transform_features(x_test, preprocessor_bundle)
 
+    baseline = DummyClassifier(strategy="most_frequent", random_state=random_state)
+    baseline.fit(x_train_prepared, y_train)
+    baseline_metrics = evaluate_model(baseline, x_test_prepared, y_test)
+
     trained_model = train_model(x_train_prepared, y_train)
     metrics = evaluate_model(trained_model, x_test_prepared, y_test)
+
+    metrics["baseline_strategy"] = "most_frequent"
+    metrics["baseline_classification_report"] = baseline_metrics["classification_report"]
+    for key in ("accuracy", "precision", "recall", "f1_score"):
+        metrics[f"baseline_{key}"] = float(baseline_metrics[key])
+        metrics[f"improvement_{key}"] = float(metrics[key]) - float(baseline_metrics[key])
 
     save_model(trained_model, model_output_path)
     save_preprocessor(preprocessor_bundle, preprocessor_output_path)
